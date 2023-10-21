@@ -162,7 +162,7 @@ class Psikit(object):
             self.rdkit_optimize(addHs = addHs)
         v = py3Dmol.view(width=400, height=400)
         v.addModel(Chem.MolToMolBlock(self.mol), 'mol')
-        v.setStyle({'sphere':{'scale':0.30},'stick':{'radius':0.25}});
+        v.setStyle({'sphere':{'scale':0.40},'stick':{'radius':0.15}});
         v.setBackgroundColor('0xeeeeee');
         v.show()
 
@@ -298,7 +298,7 @@ def draw_normal_mode(mode=0, coords=None, normal_modes=None):
         xyz+=f"{coords[i][0:4]} {atom_coords[0]*fac} {atom_coords[1]*fac} {atom_coords[2]*fac} {mode_coords[0]*fac} {mode_coords[1]*fac} {mode_coords[2]*fac} \n"
     view = py3Dmol.view(width=400, height=400)
     view.addModel(xyz, "xyz", {'vibrate': {'frames':10,'amplitude':1}})
-    view.setStyle({'sphere':{'scale':0.30},'stick':{'radius':0.25}})
+    view.setStyle({'sphere':{'scale':0.40},'stick':{'radius':0.15}})
     view.setBackgroundColor('0xeeeeee')
     view.animate({'loop': 'backAndForth'})
     view.zoomTo()
