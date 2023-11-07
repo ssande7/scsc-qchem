@@ -17,7 +17,7 @@ from debtcollector import moves
 warnings.simplefilter('ignore')
 
 class Psikit(object):
-    def __init__(self, threads=2, memory=500, debug=False):
+    def __init__(self, threads=2, memory=2800, debug=False):
         import psi4
         self.debug = debug
         self.psi4 = psi4
