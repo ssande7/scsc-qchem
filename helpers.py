@@ -144,6 +144,7 @@ class Psikit(object):
         display(mol)
         print('Ready to continue!')
         self.mol = mol
+        self.rdkit_optimize()
         self.SMILES_was_input = True
         return mol
 
@@ -153,21 +154,21 @@ class Psikit(object):
                                  description='Input Smiles:',
                                  disabled=False)
         inter_widg = interactive(self.input_smiles,
-                           {'manual': True, 'manual_name': "Load Molecule"},
+                           {'manual': True, 'manual_name': "Load Molecule", 'layout': "widgets.Layout(width='100px', height='auto')"},
                            i = text_widg)
         return inter_widg
 
     def initial_view(self, optimize = True, addHs = True):
         if optimize:
             self.rdkit_optimize(addHs = addHs)
-        v = py3Dmol.view(width=400, height=400)
+        v = py3Dmol.view(width=300, height=300)
         v.addModel(Chem.MolToMolBlock(self.mol), 'mol')
         v.setStyle({'sphere':{'scale':0.40},'stick':{'radius':0.15}});
         v.setBackgroundColor('0xeeeeee');
         v.show()
 
     def widget_initial_view(self, optimize=True, addHs=True):
-        button = widgets.Button(description="View Initial Configuration", width="auto")
+        button = widgets.Button(description="Show Minimized State", layout=widgets.Layout(width='200px', height='auto'))
         output = widgets.Output()
         def on_button_clicked(b):
             output.clear_output()
@@ -180,7 +181,7 @@ class Psikit(object):
         display(button, output)
 
     def widget_run_quantum_optimization(self):
-        button = widgets.Button(description="Run Quantum Optimization", width="auto")
+        button = widgets.Button(description="Run Quantum Optimization", layout=widgets.Layout(width='200px', height='auto'))
         output = widgets.Output()
         def on_button_clicked(b):
             output.clear_output()
@@ -195,7 +196,7 @@ class Psikit(object):
         display(button, output)
 
     def widget_find_molecular_vibrations(self):
-        button = widgets.Button(description="Find Molecular Vibrations", width="auto")
+        button = widgets.Button(description="Find Molecular Vibrations", layout=widgets.Layout(width='200px', height='auto'))
         output = widgets.Output()
         def on_button_clicked(b):
             output.clear_output()
@@ -225,7 +226,7 @@ class Psikit(object):
         ))
 
     def widget_show_normal_modes(self):
-        button = widgets.Button(description="Show Normal Modes", width="auto")
+        button = widgets.Button(description="Show Vibrations", layout=widgets.Layout(width='200px', height='auto'))
         output = widgets.Output()
         def on_button_clicked(b):
             output.clear_output()
@@ -275,7 +276,8 @@ def parse_molden(filename='default.molden_normal_modes'):
     and the displacements for each mode from the molden file
     """
     all_frequencies = list(section(filename, '[FREQ]', '\n'))
-    all_frequencies = [(float(freq),i) for i, freq in enumerate(all_frequencies)]
+    all_frequencies = [("{:0.1f} THz".format(float(freq)*0.0299793),i) for i, freq in enumerate(all_frequencies)]
+    # convert 1/cm to THz
     coords = list(section(filename, '[FR-COORD]', '\n'))
     normal_modes = []
     for freq in range(len(all_frequencies)):
@@ -296,7 +298,7 @@ def draw_normal_mode(mode=0, coords=None, normal_modes=None):
         atom_coords = [float(m) for m in  coords[i][8:].split('       ')]
         mode_coords = [float(m) for m in  normal_modes[mode][i][8:].split('       ')]
         xyz+=f"{coords[i][0:4]} {atom_coords[0]*fac} {atom_coords[1]*fac} {atom_coords[2]*fac} {mode_coords[0]*fac} {mode_coords[1]*fac} {mode_coords[2]*fac} \n"
-    view = py3Dmol.view(width=400, height=400)
+    view = py3Dmol.view(width=300, height=300)
     view.addModel(xyz, "xyz", {'vibrate': {'frames':10,'amplitude':1}})
     view.setStyle({'sphere':{'scale':0.40},'stick':{'radius':0.15}})
     view.setBackgroundColor('0xeeeeee')
