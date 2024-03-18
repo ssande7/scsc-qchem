@@ -1,0 +1,5 @@
+rdkit
+ipywidgets
+py3Dmol
+numpy
+debtcollector
