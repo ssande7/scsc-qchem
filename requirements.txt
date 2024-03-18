@@ -3,3 +3,4 @@ ipywidgets
 py3Dmol
 numpy
 debtcollector
+jupyterlab_myst
