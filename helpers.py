@@ -30,6 +30,7 @@ class Psikit(object):
         self.psi4.set_num_threads(threads);
         self.wfn = None
         self.mol = None
+        self.pmol = None
         self.tempdir = mkdtemp()
         self.SMILES_was_input = False
         self.psi_optimized = False
@@ -54,9 +55,10 @@ class Psikit(object):
         AllChem.EmbedMolecule(self.mol, useExpTorsionAnglePrefs=True,useBasicKnowledge=True)
         AllChem.UFFOptimizeMolecule(self.mol)
 
-    def geometry(self, multiplicity=1):
+    def geometry(self, multiplicity=1, sym_tol=1e-3):
         xyz = self.mol2xyz(multiplicity=multiplicity)
-        self.psi4.geometry(xyz)
+        self.pmol = self.psi4.geometry(xyz)
+        self.pmol.symmetrize(sym_tol)
 
     def energy(self, basis_sets= "scf/6-31g**", return_wfn=True, multiplicity=1):
         self.geometry(multiplicity=multiplicity)
