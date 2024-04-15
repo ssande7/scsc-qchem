@@ -91,7 +91,8 @@ class Psikit(object):
         self.psi_optimized = True
         return scf_energy
 
-    def frequencies(self, basis_sets="hf3c/6-31+g**", return_wfn=True, name=None, multiplicity=1, maxiter=50, write_molden_files=True):
+    def frequencies(self, basis_sets="scf/6-31g**", name=None, multiplicity=1, maxiter=50, write_molden_files=True):
+        # Cheaper frequency calculation since accuracy not as important
         self.set_name(name)
         if not self.psi_optimized:
             print('Cannot calculate frequencies without first optimizing!')
@@ -101,12 +102,11 @@ class Psikit(object):
         if write_molden_files:
             self.psi4.set_options({"normal_modes_write": True})
         try:
-            scf_energy, wfn = self.psi4.frequencies(basis_sets, ref_gradient=self.wfn.gradient(), return_wfn=return_wfn)
-            self.wfn = wfn
+            # Don't need wfn. Updating self.wfn would change geometry from the more accurate earlier calculation
+            scf_energy = self.psi4.frequencies(basis_sets, ref_gradient=self.wfn.gradient(), return_wfn=False)
         except self.psi4.OptimizationConvergenceError as cError:
             print('Convergence error caught: {0}'.format(cError))
-            self.wfn = cError.wfn
-            scf_energy = self.wfn.energy()
+            scf_energy = cError.wfn.energy()
             self.psi4.core.clean()
         self.mol = self.xyz2mol()
         self.frequencies_calculated = True
