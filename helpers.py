@@ -17,7 +17,7 @@ from debtcollector import moves
 warnings.simplefilter('ignore')
 
 class Psikit(object):
-    def __init__(self, threads=2, memory=2800, debug=False):
+    def __init__(self, threads=4, memory=2800, debug=False):
         import psi4
         self.debug = debug
         self.psi4 = psi4
@@ -60,7 +60,7 @@ class Psikit(object):
         self.pmol = self.psi4.geometry(xyz)
         self.pmol.symmetrize(sym_tol)
 
-    def energy(self, basis_sets= "scf/6-31g**", return_wfn=True, multiplicity=1):
+    def energy(self, basis_sets= "hf3c/6-31+g**", return_wfn=True, multiplicity=1):
         self.geometry(multiplicity=multiplicity)
         scf_energy, wfn = self.psi4.energy(basis_sets, return_wfn=return_wfn)
         self.psi4.core.clean()
@@ -77,7 +77,7 @@ class Psikit(object):
             self.psi4.set_options({"writer_file_label": self.tempdir+'/'+self.name})
             self.fileprefix = self.psi4.core.get_writer_file_prefix(self.name)
 
-    def optimize(self, basis_sets= "scf/6-31g**", return_wfn=True, name=None, multiplicity=1, maxiter=50):
+    def optimize(self, basis_sets= "hf3c/6-31+g**", return_wfn=True, name=None, multiplicity=1, maxiter=50):
         self.set_name(name)
         self.geometry(multiplicity=multiplicity)
         self.psi4.set_options({'GEOM_MAXITER':maxiter})
@@ -93,7 +93,8 @@ class Psikit(object):
         self.psi_optimized = True
         return scf_energy
 
-    def frequencies(self, basis_sets="scf/6-31g**", return_wfn=True, name=None, multiplicity=1, maxiter=50, write_molden_files=True):
+    def frequencies(self, basis_sets="scf/6-31g**", name=None, multiplicity=1, maxiter=50, write_molden_files=True):
+        # Cheaper frequency calculation since accuracy not as important
         self.set_name(name)
         if not self.psi_optimized:
             print('Cannot calculate frequencies without first optimizing!')
@@ -103,12 +104,11 @@ class Psikit(object):
         if write_molden_files:
             self.psi4.set_options({"normal_modes_write": True})
         try:
-            scf_energy, wfn = self.psi4.frequencies(basis_sets, ref_gradient=self.wfn.gradient(), return_wfn=return_wfn)
-            self.wfn = wfn
+            # Don't need wfn. Updating self.wfn would change geometry from the more accurate earlier calculation
+            scf_energy = self.psi4.frequencies(basis_sets, ref_gradient=self.wfn.gradient(), return_wfn=False)
         except self.psi4.OptimizationConvergenceError as cError:
             print('Convergence error caught: {0}'.format(cError))
-            self.wfn = cError.wfn
-            scf_energy = self.wfn.energy()
+            scf_energy = cError.wfn.energy()
             self.psi4.core.clean()
         self.mol = self.xyz2mol()
         self.frequencies_calculated = True
@@ -177,10 +177,49 @@ class Psikit(object):
             with output:
                 if self.SMILES_was_input:
                     self.initial_view(optimize, addHs)
+                    self.print_chloroform_info()
                 else:
                     print("No molecule input yet!")
         button.on_click(on_button_clicked)
         display(button, output)
+
+    def print_chloroform_info(self):
+        bohr2nm = 0.052918
+        if self.mol.GetNumAtoms() != 5 or not self.mol.HasSubstructMatch(Chem.MolFromSmiles("ClC(Cl)Cl")):
+            return
+        psi4mol = self.wfn.molecule()
+        H = None
+        Cl1 = None
+        Cl2 = None
+        C = None
+        for idx in range(5):
+            sym = psi4mol.symbol(idx)
+            match sym:
+                case 'H':
+                    H = idx
+                case 'CL':
+                    if Cl1 is None:
+                        Cl1 = idx
+                    else:
+                        Cl2 = idx
+                case 'C':
+                    C = idx
+            if H is not None and Cl1 is not None and Cl2 is not None and C is not None:
+                break
+        if H is None or Cl1 is None or Cl2 is None or C is None:
+            # Should never be true
+            return
+        geom = psi4mol.geometry().np
+        CH = geom[C] - geom[H]
+        CCl1 = geom[C] - geom[Cl1]
+        CCl2 = geom[C] - geom[Cl2]
+        len_CH = np.linalg.norm(CH)
+        len_CCl1 = np.linalg.norm(CCl1)
+        len_CCl2 = np.linalg.norm(CCl2)
+        print(f'\nBond Lengths:\n  C-H:\t\t{len_CH * bohr2nm:.4f} nm\n  C-Cl:\t\t{len_CCl1 * bohr2nm:.4f} nm')
+        angle_HCCl = np.arccos(np.clip(np.dot(CH/len_CH, CCl1/len_CCl1), -1.0, 1.0)) * 180/np.pi
+        angle_ClCCl = np.arccos(np.clip(np.dot(CCl1/len_CCl1, CCl2/len_CCl2), -1.0, 1.0)) * 180/np.pi
+        print(f'\nBond Angles: \n  H-C-Cl:\t{angle_HCCl:.3f}°\n  Cl-C-Cl:\t{angle_ClCCl:.3f}°')
 
     def widget_run_quantum_optimization(self):
         button = widgets.Button(description="Run Quantum Optimization", layout=widgets.Layout(width='200px', height='auto'))
