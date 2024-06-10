@@ -37,6 +37,7 @@ class Psikit(object):
         self.name = None
         self.fileprefix = None
         self.frequencies_calculated = False
+        self.basis_set = 'hf3c/6-31+g**'
 
     def __del__(self):
         self.clean()
@@ -60,9 +61,9 @@ class Psikit(object):
         self.pmol = self.psi4.geometry(xyz)
         self.pmol.symmetrize(sym_tol)
 
-    def energy(self, basis_sets= "hf3c/6-31+g**", return_wfn=True, multiplicity=1):
+    def energy(self, return_wfn=True, multiplicity=1):
         self.geometry(multiplicity=multiplicity)
-        scf_energy, wfn = self.psi4.energy(basis_sets, return_wfn=return_wfn)
+        scf_energy, wfn = self.psi4.energy(self.basis_set, return_wfn=return_wfn)
         self.psi4.core.clean()
         self.wfn = wfn
         self.mol = self.xyz2mol()
@@ -77,12 +78,16 @@ class Psikit(object):
             self.psi4.set_options({"writer_file_label": self.tempdir+'/'+self.name})
             self.fileprefix = self.psi4.core.get_writer_file_prefix(self.name)
 
-    def optimize(self, basis_sets= "hf3c/6-31+g**", return_wfn=True, name=None, multiplicity=1, maxiter=50):
+    def optimize(self, return_wfn=True, name=None, multiplicity=1, maxiter=50):
         self.set_name(name)
         self.geometry(multiplicity=multiplicity)
         self.psi4.set_options({'GEOM_MAXITER':maxiter})
+        if self.mol.GetNumAtoms() < 6:
+            self.basis_set = 'hf3c/6-31+G**'
+        else:
+            self.basis_set = 'hf/6-31G**'
         try:
-            scf_energy, wfn = self.psi4.optimize(basis_sets, return_wfn=return_wfn)
+            scf_energy, wfn = self.psi4.optimize(self.basis_set, return_wfn=return_wfn)
             self.wfn = wfn
         except self.psi4.OptimizationConvergenceError as cError:
             print('Convergence error caught: {0}'.format(cError))
@@ -93,7 +98,7 @@ class Psikit(object):
         self.psi_optimized = True
         return scf_energy
 
-    def frequencies(self, basis_sets="scf/6-31g**", name=None, multiplicity=1, maxiter=50, write_molden_files=True):
+    def frequencies(self, name=None, multiplicity=1, maxiter=50, write_molden_files=True):
         # Cheaper frequency calculation since accuracy not as important
         self.set_name(name)
         if not self.psi_optimized:
@@ -105,7 +110,7 @@ class Psikit(object):
             self.psi4.set_options({"normal_modes_write": True})
         try:
             # Don't need wfn. Updating self.wfn would change geometry from the more accurate earlier calculation
-            scf_energy = self.psi4.frequencies(basis_sets, ref_gradient=self.wfn.gradient(), return_wfn=False)
+            scf_energy = self.psi4.frequencies(self.basis_set, ref_gradient=self.wfn.gradient(), return_wfn=False)
         except self.psi4.OptimizationConvergenceError as cError:
             print('Convergence error caught: {0}'.format(cError))
             scf_energy = cError.wfn.energy()
@@ -336,8 +341,8 @@ def draw_normal_mode(mode=0, coords=None, normal_modes=None):
     fac=0.52917721067121  # bohr to A
     xyz =f"{len(coords)}\n\n"
     for i in range(len(coords)):
-        atom_coords = [float(m) for m in  coords[i][8:].split('       ')]
-        mode_coords = [float(m) for m in  normal_modes[mode][i][8:].split('       ')]
+        atom_coords = [float(m) for m in  coords[i][8:].split()]
+        mode_coords = [float(m) for m in  normal_modes[mode][i][8:].split()]
         xyz+=f"{coords[i][0:4]} {atom_coords[0]*fac} {atom_coords[1]*fac} {atom_coords[2]*fac} {mode_coords[0]*fac} {mode_coords[1]*fac} {mode_coords[2]*fac} \n"
     view = py3Dmol.view(width=300, height=300)
     view.addModel(xyz, "xyz", {'vibrate': {'frames':10,'amplitude':1}})
