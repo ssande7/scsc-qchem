@@ -5,3 +5,5 @@ numpy
 debtcollector
 jupyterlab_myst
 dftd3
+ipyvuetify
+solara

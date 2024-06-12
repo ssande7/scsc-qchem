@@ -353,4 +353,18 @@ def draw_normal_mode(mode=0, coords=None, normal_modes=None):
     return(view.show())
 
 
+import solara
+import solara.lab
 
+@solara.component
+def Step1():
+    with solara.lab.Tabs():
+        with solara.lab.Tab('Instructions: Loading a molecule'):
+            solara.Markdown(
+'''
+1. To run the calculation, we first need to tell the quantum chemistry software which molecule to look at. We can do this with a SMILES code, which we will get from the table in the next tab, or from another website.
+2. For some common molecules, you can copy the this from the table in the "SMILES Codes" tab of this panel and paste it in the box below.
+3. Click "Load Molecule" to load in the SMILES code and check that it's correct
+''')
+        with solara.Tab('Information: SMILES Codes'):
+            solara.Markdown('TODO - testing')
