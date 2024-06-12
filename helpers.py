@@ -558,6 +558,7 @@ def Step4():
     </ul>
     </li>
 </ol>
+If you don't already have Molview open, the link is: [molview.org](https://molview.org/)
 ''')
             with solara.lab.Tab('Bond Lengths'):
                 solara.Markdown(
