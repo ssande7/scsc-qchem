@@ -1,7 +1,7 @@
 rdkit
 ipywidgets
 py3Dmol
-numpy
+numpy<2
 debtcollector
 jupyterlab_myst
 dftd3
